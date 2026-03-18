@@ -941,7 +941,7 @@
   <div class="page active" id="page-search">
     <div class="upload-hero">
       <h1>Found something? <em>Let's find its owner.</em></h1>
-      <p>Upload a photo and our AI will scan the lost items database for matches.</p>
+      <p>Upload a photo or describe the item by voice — our AI will scan the database for matches.</p>
     </div>
 
     <div class="upload-zone" id="uploadZone">
@@ -955,6 +955,34 @@
       </div>
       <h3>Drop your photo here</h3>
       <p>or click to browse — JPG, PNG, HEIC up to 10MB</p>
+    </div>
+
+    <!-- Divider -->
+    <div style="display:flex;align-items:center;gap:1rem;margin:1.5rem 0;">
+      <div style="flex:1;height:1px;background:var(--border);"></div>
+      <span style="font-size:0.78rem;color:var(--ink-faint);font-weight:500;text-transform:uppercase;letter-spacing:0.08em;">or describe by voice</span>
+      <div style="flex:1;height:1px;background:var(--border);"></div>
+    </div>
+
+    <!-- Voice Search -->
+    <div id="voiceBox" style="background:var(--warm-white);border:1px solid var(--border);border-radius:16px;padding:1.75rem;text-align:center;">
+      <button id="voiceBtn" onclick="toggleVoice()" style="width:72px;height:72px;border-radius:50%;border:2px solid var(--border-strong);background:var(--cream);cursor:pointer;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;transition:all 0.2s;">
+        <svg id="micIcon" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--ink-muted);">
+          <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
+          <path d="M19 10v2a7 7 0 01-14 0v-2"/>
+          <line x1="12" y1="19" x2="12" y2="23"/>
+          <line x1="8" y1="23" x2="16" y2="23"/>
+        </svg>
+      </button>
+      <p id="voiceStatus" style="font-size:0.88rem;color:var(--ink-muted);margin-bottom:0.5rem;">Tap the mic to describe the item</p>
+      <p id="voiceTranscript" style="font-size:0.95rem;color:var(--ink);font-weight:500;min-height:1.4rem;line-height:1.5;"></p>
+      <button id="voiceSearchBtn" onclick="searchByVoice()" style="display:none;margin-top:1rem;" class="analyze-btn">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        Search Database
+      </button>
+      <button id="voiceClearBtn" onclick="clearVoice()" style="display:none;margin-top:8px;" class="clear-btn">Clear</button>
     </div>
 
     <div class="preview-area" id="previewArea">
@@ -1437,7 +1465,149 @@ document.getElementById('addModal').addEventListener('click', function(e) {
   if (e.target === this) closeAddModal();
 });
 
-// ─── PWA ──────────────────────────────────────────────────────────────────────
+// ─── Voice Search ─────────────────────────────────────────────────────────────
+let recognition = null;
+let isListening = false;
+let voiceText = '';
+
+function toggleVoice() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    document.getElementById('voiceStatus').textContent = 'Voice search not supported in this browser. Try Chrome or Safari.';
+    return;
+  }
+  if (isListening) { stopVoice(); return; }
+
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRec();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+
+  const btn = document.getElementById('voiceBtn');
+  const icon = document.getElementById('micIcon');
+  const status = document.getElementById('voiceStatus');
+  const transcript = document.getElementById('voiceTranscript');
+
+  recognition.onstart = () => {
+    isListening = true;
+    btn.style.background = '#fee2e2';
+    btn.style.borderColor = '#dc2626';
+    icon.style.color = '#dc2626';
+    btn.style.transform = 'scale(1.1)';
+    status.textContent = 'Listening… speak now';
+    transcript.textContent = '';
+    document.getElementById('voiceSearchBtn').style.display = 'none';
+    document.getElementById('voiceClearBtn').style.display = 'none';
+  };
+
+  recognition.onresult = (e) => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      e.results[i].isFinal ? (final += t) : (interim += t);
+    }
+    transcript.textContent = final || interim;
+    if (final) voiceText = final;
+  };
+
+  recognition.onend = () => {
+    isListening = false;
+    btn.style.background = 'var(--cream)';
+    btn.style.borderColor = 'var(--border-strong)';
+    icon.style.color = 'var(--ink-muted)';
+    btn.style.transform = 'scale(1)';
+    if (voiceText) {
+      status.textContent = 'Got it! Ready to search.';
+      document.getElementById('voiceSearchBtn').style.display = 'inline-flex';
+      document.getElementById('voiceClearBtn').style.display = 'block';
+    } else {
+      status.textContent = 'No speech detected. Try again.';
+    }
+  };
+
+  recognition.onerror = () => {
+    isListening = false;
+    status.textContent = 'Error. Please try again.';
+    btn.style.background = 'var(--cream)';
+    btn.style.borderColor = 'var(--border-strong)';
+    icon.style.color = 'var(--ink-muted)';
+  };
+
+  recognition.start();
+}
+
+function stopVoice() {
+  if (recognition) recognition.stop();
+}
+
+function clearVoice() {
+  voiceText = '';
+  document.getElementById('voiceTranscript').textContent = '';
+  document.getElementById('voiceStatus').textContent = 'Tap the mic to describe the item';
+  document.getElementById('voiceSearchBtn').style.display = 'none';
+  document.getElementById('voiceClearBtn').style.display = 'none';
+}
+
+async function searchByVoice() {
+  if (!voiceText) return;
+  const btn = document.getElementById('voiceSearchBtn');
+  btn.disabled = true;
+  document.getElementById('loadingOverlay').classList.add('visible');
+  document.getElementById('resultsSection').classList.remove('visible');
+
+  const dbSummary = database.map(item =>
+    `ID:${item.id} | ${item.name} | Category: ${item.category} | Location: ${item.location} | Description: ${item.description} | Status: ${item.status}`
+  ).join('\n');
+
+  const prompt = `You are an AI assistant for a Lost & Found service. A user has described a lost or found item by voice:
+
+"${voiceText}"
+
+Search through the lost items database below and find the best matches.
+
+Database:
+${dbSummary}
+
+Respond with ONLY this JSON structure (no backticks, no markdown):
+{
+  "itemDescription": "Brief summary of what the user described",
+  "matches": [
+    {
+      "id": <database item ID as number>,
+      "confidence": <0-100 number>,
+      "reason": "Brief reason why this matches"
+    }
+  ]
+}
+
+Rules:
+- Include matches with confidence > 30
+- Sort by confidence descending
+- If no matches, return empty matches array`;
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+    const data = await response.json();
+    const text = data.content?.map(c => c.text || '').join('') || '';
+    const result = JSON.parse(text.replace(/```json|```/g, '').trim());
+    showResults(result);
+  } catch (err) {
+    showResults({ itemDescription: voiceText, matches: [] });
+  } finally {
+    btn.disabled = false;
+    document.getElementById('loadingOverlay').classList.remove('visible');
+  }
+}
+
+
 const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="100" fill="#C45A2A"/><circle cx="220" cy="220" r="110" fill="none" stroke="white" stroke-width="48"/><line x1="300" y1="300" x2="410" y2="410" stroke="white" stroke-width="48" stroke-linecap="round"/></svg>`;
 const iconBlob = new Blob([iconSvg], {type:'image/svg+xml'});
 const iconUrl = URL.createObjectURL(iconBlob);
