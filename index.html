@@ -964,25 +964,33 @@
       <div style="flex:1;height:1px;background:var(--border);"></div>
     </div>
 
-    <!-- Voice Search -->
-    <div id="voiceBox" style="background:var(--warm-white);border:1px solid var(--border);border-radius:16px;padding:1.75rem;text-align:center;">
-      <button id="voiceBtn" onclick="toggleVoice()" style="width:72px;height:72px;border-radius:50%;border:2px solid var(--border-strong);background:var(--cream);cursor:pointer;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;transition:all 0.2s;">
-        <svg id="micIcon" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--ink-muted);">
-          <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
-          <path d="M19 10v2a7 7 0 01-14 0v-2"/>
-          <line x1="12" y1="19" x2="12" y2="23"/>
-          <line x1="8" y1="23" x2="16" y2="23"/>
-        </svg>
-      </button>
-      <p id="voiceStatus" style="font-size:0.88rem;color:var(--ink-muted);margin-bottom:0.5rem;">Tap the mic to describe the item</p>
-      <p id="voiceTranscript" style="font-size:0.95rem;color:var(--ink);font-weight:500;min-height:1.4rem;line-height:1.5;"></p>
-      <button id="voiceSearchBtn" onclick="searchByVoice()" style="display:none;margin-top:1rem;" class="analyze-btn">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        Search Database
-      </button>
-      <button id="voiceClearBtn" onclick="clearVoice()" style="display:none;margin-top:8px;" class="clear-btn">Clear</button>
+    <!-- Voice + Text Search -->
+    <div id="voiceBox" style="background:var(--warm-white);border:1px solid var(--border);border-radius:16px;padding:1.5rem;">
+
+      <!-- Text input row -->
+      <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:1rem;">
+        <textarea id="textInput" placeholder="e.g. black leather wallet found near the park, or blue backpack with a red keychain…" style="flex:1;min-height:80px;padding:12px 14px;border:1px solid var(--border-strong);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.88rem;background:var(--cream);color:var(--ink);resize:vertical;outline:none;transition:border-color 0.2s;line-height:1.6;" oninput="onTextInput()" onfocus="this.style.borderColor='var(--rust)'" onblur="this.style.borderColor='var(--border-strong)'"></textarea>
+        <button id="voiceBtn" onclick="toggleVoice()" title="Search by voice" style="width:48px;height:48px;flex-shrink:0;border-radius:50%;border:1.5px solid var(--border-strong);background:var(--cream);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;margin-top:2px;">
+          <svg id="micIcon" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--ink-muted);">
+            <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
+            <path d="M19 10v2a7 7 0 01-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        </button>
+      </div>
+
+      <p id="voiceStatus" style="font-size:0.8rem;color:var(--ink-faint);margin-bottom:0.75rem;display:none;">Listening… speak now</p>
+
+      <div style="display:flex;gap:8px;">
+        <button id="textSearchBtn" onclick="searchByText()" class="analyze-btn" disabled style="flex:1;opacity:0.5;cursor:not-allowed;">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          Search by Description
+        </button>
+        <button id="textClearBtn" onclick="clearText()" class="clear-btn" style="display:none;padding:10px 16px;">Clear</button>
+      </div>
     </div>
 
     <div class="preview-area" id="previewArea">
@@ -1465,14 +1473,40 @@ document.getElementById('addModal').addEventListener('click', function(e) {
   if (e.target === this) closeAddModal();
 });
 
-// ─── Voice Search ─────────────────────────────────────────────────────────────
+// ─── Voice + Text Search ──────────────────────────────────────────────────────
 let recognition = null;
 let isListening = false;
 let voiceText = '';
 
+function onTextInput() {
+  const val = document.getElementById('textInput').value.trim();
+  const btn = document.getElementById('textSearchBtn');
+  const clearBtn = document.getElementById('textClearBtn');
+  if (val.length > 2) {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+    clearBtn.style.display = 'block';
+  } else {
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    btn.style.cursor = 'not-allowed';
+    clearBtn.style.display = 'none';
+  }
+}
+
+function clearText() {
+  document.getElementById('textInput').value = '';
+  document.getElementById('voiceStatus').style.display = 'none';
+  onTextInput();
+}
+
 function toggleVoice() {
   if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-    document.getElementById('voiceStatus').textContent = 'Voice search not supported in this browser. Try Chrome or Safari.';
+    const s = document.getElementById('voiceStatus');
+    s.style.display = 'block';
+    s.style.color = 'var(--rust)';
+    s.textContent = 'Voice not supported in this browser. Please type instead.';
     return;
   }
   if (isListening) { stopVoice(); return; }
@@ -1486,18 +1520,18 @@ function toggleVoice() {
   const btn = document.getElementById('voiceBtn');
   const icon = document.getElementById('micIcon');
   const status = document.getElementById('voiceStatus');
-  const transcript = document.getElementById('voiceTranscript');
+  const textBox = document.getElementById('textInput');
 
   recognition.onstart = () => {
     isListening = true;
     btn.style.background = '#fee2e2';
     btn.style.borderColor = '#dc2626';
     icon.style.color = '#dc2626';
-    btn.style.transform = 'scale(1.1)';
+    status.style.display = 'block';
+    status.style.color = 'var(--rust)';
     status.textContent = 'Listening… speak now';
-    transcript.textContent = '';
-    document.getElementById('voiceSearchBtn').style.display = 'none';
-    document.getElementById('voiceClearBtn').style.display = 'none';
+    textBox.value = '';
+    onTextInput();
   };
 
   recognition.onresult = (e) => {
@@ -1506,8 +1540,9 @@ function toggleVoice() {
       const t = e.results[i][0].transcript;
       e.results[i].isFinal ? (final += t) : (interim += t);
     }
-    transcript.textContent = final || interim;
+    textBox.value = final || interim;
     if (final) voiceText = final;
+    onTextInput();
   };
 
   recognition.onend = () => {
@@ -1515,19 +1550,18 @@ function toggleVoice() {
     btn.style.background = 'var(--cream)';
     btn.style.borderColor = 'var(--border-strong)';
     icon.style.color = 'var(--ink-muted)';
-    btn.style.transform = 'scale(1)';
-    if (voiceText) {
-      status.textContent = 'Got it! Ready to search.';
-      document.getElementById('voiceSearchBtn').style.display = 'inline-flex';
-      document.getElementById('voiceClearBtn').style.display = 'block';
+    if (textBox.value.trim()) {
+      status.style.color = 'var(--sage)';
+      status.textContent = '✓ Got it — tap Search to find matches';
     } else {
-      status.textContent = 'No speech detected. Try again.';
+      status.textContent = 'No speech detected. Try again or type below.';
+      status.style.color = 'var(--ink-faint)';
     }
   };
 
   recognition.onerror = () => {
     isListening = false;
-    status.textContent = 'Error. Please try again.';
+    status.textContent = 'Mic error. Please try again.';
     btn.style.background = 'var(--cream)';
     btn.style.borderColor = 'var(--border-strong)';
     icon.style.color = 'var(--ink-muted)';
@@ -1540,17 +1574,11 @@ function stopVoice() {
   if (recognition) recognition.stop();
 }
 
-function clearVoice() {
-  voiceText = '';
-  document.getElementById('voiceTranscript').textContent = '';
-  document.getElementById('voiceStatus').textContent = 'Tap the mic to describe the item';
-  document.getElementById('voiceSearchBtn').style.display = 'none';
-  document.getElementById('voiceClearBtn').style.display = 'none';
-}
+async function searchByText() {
+  const query = document.getElementById('textInput').value.trim();
+  if (!query) return;
 
-async function searchByVoice() {
-  if (!voiceText) return;
-  const btn = document.getElementById('voiceSearchBtn');
+  const btn = document.getElementById('textSearchBtn');
   btn.disabled = true;
   document.getElementById('loadingOverlay').classList.add('visible');
   document.getElementById('resultsSection').classList.remove('visible');
@@ -1559,9 +1587,9 @@ async function searchByVoice() {
     `ID:${item.id} | ${item.name} | Category: ${item.category} | Location: ${item.location} | Description: ${item.description} | Status: ${item.status}`
   ).join('\n');
 
-  const prompt = `You are an AI assistant for a Lost & Found service. A user has described a lost or found item by voice:
+  const prompt = `You are an AI assistant for a Lost & Found service. A user has described a lost or found item:
 
-"${voiceText}"
+"${query}"
 
 Search through the lost items database below and find the best matches.
 
@@ -1570,7 +1598,7 @@ ${dbSummary}
 
 Respond with ONLY this JSON structure (no backticks, no markdown):
 {
-  "itemDescription": "Brief summary of what the user described",
+  "itemDescription": "Brief restatement of what the user described",
   "matches": [
     {
       "id": <database item ID as number>,
@@ -1600,12 +1628,16 @@ Rules:
     const result = JSON.parse(text.replace(/```json|```/g, '').trim());
     showResults(result);
   } catch (err) {
-    showResults({ itemDescription: voiceText, matches: [] });
+    showResults({ itemDescription: query, matches: [] });
   } finally {
     btn.disabled = false;
     document.getElementById('loadingOverlay').classList.remove('visible');
   }
 }
+
+// Keep old searchByVoice as alias
+const searchByVoice = searchByText;
+const clearVoice = clearText;
 
 
 const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="100" fill="#C45A2A"/><circle cx="220" cy="220" r="110" fill="none" stroke="white" stroke-width="48"/><line x1="300" y1="300" x2="410" y2="410" stroke="white" stroke-width="48" stroke-linecap="round"/></svg>`;
