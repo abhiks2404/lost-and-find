@@ -2,8 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FindIt — Lost & Found</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Bay State Brains: FindIt">
+<meta name="theme-color" content="#C45A2A">
+<meta name="description" content="Bay State Brains: FindIt — upload a photo to find missing items">
+<link rel="manifest" id="manifestLink">
+<title>Bay State Brains: FindIt</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
 
@@ -31,6 +38,105 @@
     background: var(--cream);
     color: var(--ink);
     min-height: 100vh;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .install-banner {
+    display: none;
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 2rem);
+    max-width: 480px;
+    background: var(--ink);
+    color: white;
+    border-radius: 14px;
+    padding: 14px 16px;
+    z-index: 500;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    animation: slideUp 0.35s ease;
+  }
+
+  .install-banner.visible { display: flex; }
+
+  @keyframes slideUp {
+    from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+    to   { transform: translateX(-50%) translateY(0);   opacity: 1; }
+  }
+
+  .install-banner .app-icon {
+    width: 44px;
+    height: 44px;
+    background: var(--rust);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 22px;
+  }
+
+  .install-banner .install-text { flex: 1; }
+  .install-banner .install-text strong { display: block; font-size: 0.88rem; font-weight: 600; }
+  .install-banner .install-text span { font-size: 0.75rem; opacity: 0.7; }
+
+  .install-now-btn {
+    background: var(--rust);
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .install-dismiss {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.5);
+    cursor: pointer;
+    padding: 4px;
+    font-size: 18px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .ios-tip {
+    display: none;
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 2rem);
+    max-width: 360px;
+    background: var(--ink);
+    color: white;
+    border-radius: 12px;
+    padding: 14px 16px;
+    z-index: 500;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  }
+
+  .ios-tip.visible { display: block; }
+  .ios-tip strong { display: block; margin-bottom: 6px; font-size: 0.88rem; }
+  .ios-tip .close-tip {
+    margin-top: 10px;
+    display: inline-block;
+    padding: 6px 16px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.78rem;
   }
 
   header {
@@ -703,6 +809,90 @@
 
   .btn-secondary:hover { background: var(--cream); color: var(--ink); }
 
+  .db-card { position: relative; }
+
+  .delete-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: var(--warm-white);
+    color: var(--ink-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.2s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  }
+
+  .db-card:hover .delete-btn { opacity: 1; }
+  .delete-btn:hover { background: #fee2e2; color: #dc2626; transform: scale(1.1); }
+
+  .confirm-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26,23,20,0.5);
+    z-index: 300;
+    align-items: center;
+    justify-content: center;
+  }
+  .confirm-backdrop.open { display: flex; }
+
+  .confirm-box {
+    background: var(--warm-white);
+    border-radius: 14px;
+    padding: 1.75rem;
+    width: 320px;
+    text-align: center;
+  }
+
+  .confirm-box .icon {
+    width: 48px;
+    height: 48px;
+    background: #fee2e2;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    color: #dc2626;
+  }
+
+  .confirm-box h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+  }
+
+  .confirm-box p {
+    font-size: 0.83rem;
+    color: var(--ink-muted);
+    margin-bottom: 1.25rem;
+  }
+
+  .confirm-actions { display: flex; gap: 8px; }
+
+  .btn-danger {
+    flex: 1;
+    background: #dc2626;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn-danger:hover { background: #b91c1c; }
+
   @media (max-width: 600px) {
     .preview-grid { grid-template-columns: 1fr; }
     .match-card { grid-template-columns: 64px 1fr; }
@@ -714,9 +904,29 @@
 </head>
 <body>
 
+<!-- PWA Install Banner (Android/Chrome) -->
+<div class="install-banner" id="installBanner">
+  <div class="app-icon">🔍</div>
+  <div class="install-text">
+    <strong>Bay State Brains: FindIt</strong>
+    <span>Add to your home screen</span>
+  </div>
+  <button class="install-now-btn" onclick="triggerInstall()">Install</button>
+  <button class="install-dismiss" onclick="dismissBanner()">✕</button>
+</div>
+
+<!-- iOS Tip -->
+<div class="ios-tip" id="iosTip">
+  <strong>📱 Install on iPhone</strong>
+  Tap the <strong>Share</strong> button (↑) at the bottom of Safari, then tap <strong>"Add to Home Screen"</strong>
+  <div class="close-tip" onclick="document.getElementById('iosTip').classList.remove('visible')">Got it</div>
+</div>
+
 <header>
   <div class="logo">
     <div class="logo-dot"></div>
+    <span style="font-size:0.75rem;font-family:'DM Sans',sans-serif;font-weight:500;color:var(--ink-muted);letter-spacing:0.01em;">Bay State Brains</span>
+    <span style="color:var(--ink-faint);margin:0 2px;">·</span>
     FindIt
   </div>
   <nav class="nav-tabs">
@@ -800,6 +1010,23 @@
     <div class="db-grid" id="dbGrid"></div>
   </div>
 </main>
+
+<!-- Delete Confirm Modal -->
+<div class="confirm-backdrop" id="confirmModal">
+  <div class="confirm-box">
+    <div class="icon">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+      </svg>
+    </div>
+    <h4>Delete this item?</h4>
+    <p id="confirmItemName">This will remove the item from the database permanently.</p>
+    <div class="confirm-actions">
+      <button class="btn-secondary" onclick="closeConfirm()">Cancel</button>
+      <button class="btn-danger" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
 
 <!-- Add Item Modal -->
 <div class="modal-backdrop" id="addModal">
@@ -1047,6 +1274,11 @@ function renderDatabase() {
       : item.emoji;
     return `
       <div class="db-card">
+        <button class="delete-btn" onclick="deleteItem(${item.id})" title="Delete item">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+          </svg>
+        </button>
         <div class="db-card-img">${thumb}</div>
         <div class="db-card-body">
           <h4>${item.name}</h4>
@@ -1137,10 +1369,94 @@ function fileToBase64Reader(file) {
   });
 }
 
-// Init
+let pendingDeleteId = null;
+
+function deleteItem(id) {
+  const item = database.find(d => d.id === id);
+  if (!item) return;
+  pendingDeleteId = id;
+  document.getElementById('confirmItemName').textContent = `"${item.name}" will be removed from the database permanently.`;
+  document.getElementById('confirmModal').classList.add('open');
+}
+
+function closeConfirm() {
+  pendingDeleteId = null;
+  document.getElementById('confirmModal').classList.remove('open');
+}
+
+function confirmDelete() {
+  if (pendingDeleteId === null) return;
+  database = database.filter(d => d.id !== pendingDeleteId);
+  closeConfirm();
+  renderDatabase();
+}
+
+document.getElementById('confirmModal').addEventListener('click', function(e) {
+  if (e.target === this) closeConfirm();
+});
+
 document.getElementById('addModal').addEventListener('click', function(e) {
   if (e.target === this) closeAddModal();
 });
+
+// ─── PWA ──────────────────────────────────────────────────────────────────────
+const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="100" fill="#C45A2A"/><circle cx="220" cy="220" r="110" fill="none" stroke="white" stroke-width="48"/><line x1="300" y1="300" x2="410" y2="410" stroke="white" stroke-width="48" stroke-linecap="round"/></svg>`;
+const iconBlob = new Blob([iconSvg], {type:'image/svg+xml'});
+const iconUrl = URL.createObjectURL(iconBlob);
+
+const manifest = {
+  name: "Bay State Brains: FindIt",
+  short_name: "BSB FindIt",
+  description: "Bay State Brains — AI-powered Lost & Found",
+  start_url: "./",
+  display: "standalone",
+  background_color: "#F8F4EF",
+  theme_color: "#C45A2A",
+  orientation: "portrait",
+  icons: [
+    { src: iconUrl, sizes: "192x192", type: "image/svg+xml", purpose: "any maskable" },
+    { src: iconUrl, sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }
+  ]
+};
+
+const manifestBlob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+document.getElementById('manifestLink').href = URL.createObjectURL(manifestBlob);
+
+let deferredPrompt = null;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+if (!isStandalone) {
+  if (isIOS) {
+    setTimeout(() => document.getElementById('iosTip').classList.add('visible'), 2500);
+  } else {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      setTimeout(() => document.getElementById('installBanner').classList.add('visible'), 1500);
+    });
+  }
+}
+
+function triggerInstall() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(() => { deferredPrompt = null; dismissBanner(); });
+}
+
+function dismissBanner() {
+  document.getElementById('installBanner').classList.remove('visible');
+}
+
+if ('serviceWorker' in navigator) {
+  const swCode = `
+    const CACHE='findit-v1';
+    self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(['./']))));
+    self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>caches.match('./')))));
+  `;
+  const swBlob = new Blob([swCode], {type:'text/javascript'});
+  navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
+}
 </script>
 </body>
 </html>
